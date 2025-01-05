@@ -5,6 +5,7 @@ import pandas as pd
 import requests
 from crewai import Agent, Crew, Process, Task
 from crewai_tools import tool
+from crewai import Agent, LLM
 #from google.colab import userdata
 #from langchain.agents import load_tools
 from langchain_community.agent_toolkits.load_tools import load_tools
@@ -22,44 +23,30 @@ from dotenv import load_dotenv
 import yfinance as yf
 
 load_dotenv()
-api_key = os.getenv("GLHF_API_KEY")
-api_url = os.getenv("GLHF_API_URL")
 
-model_name = "hf:meta-llama/Llama-3.3-70B-Instruct"
-# Set your API key
-llm = ChatOpenAI(
-            model=model_name,
-            api_key=api_key,
-            base_url=api_url,
-            temperature=0,
-            max_retries=2
-        )
-#print(llm.invoke("Hello, how are you?"))
+#os.environ["OPENAI_API_KEY"] = "NA"
 
+llm=LLM(model="ollama/llama3.2:3b", base_url="http://localhost:11434")
 
-# class HumanInputInput(BaseModel):
-#     tool_input: Union[str, dict[str, Any]]
-#     verbose: Optional[bool] = None
-#     start_color: Optional[str] = None
-#     color: Optional[str] = None
-#     callbacks: Optional[Callbacks] = None
-#     tags: Optional[list[str]] = None
-#     metadata: Optional[dict[str, Any]] = None
-#     run_name: Optional[str] = None
-#     run_id: Optional[uuid.UUID] = None
-#     config: Optional[RunnableConfig] = None
-#     tool_call_id: Optional[str] = None
-#     kwargs: Any = None
+# ticker = "BTC-USD"
+# def get_daily_closing_prices(ticker:str) -> pd.DataFrame:
+#         symbol = yf.Ticker(ticker)
+#         df = symbol.history(period="3mo")
+#         df1 = df[["Close"]]
+#         df1.rename(columns={"Close":"price"}, inplace = True)
+#         df1.index = pd.to_datetime(df.index)
+#         return df1
+    
+# def crypto_price_tool(ticker_symbol: str) -> str:
+#         """Get daily closing price for a given ticker symbol"""
+#         price_df = get_daily_closing_prices(ticker_symbol)
+#         text_output = ["date - price (USD)"]
+#         for date, row in price_df.iterrows():
+#             text_output.append(f"{date.strftime('%Y-%m-%d')} - {row['price']:.2f}")
+#         return "\n".join(text_output)
+# print(crypto_price_tool("BTC-USD"))
+# # ########################################################################## Load human tools to enhance the AI's capabilities 
 
-# ########################################################################## Load human tools to enhance the AI's capabilities 
-human_tools = load_tools(["human"])
-
-# Create a proper Tool instance for human input
-human_tool = Tool(
-    name="Human Input",
-    description="Tool for getting input from a human",
-    func=human_tools[0].run
-)
 
 def analyze_crypto(crypto_ticker: str):
     customer_communicator_agent = Agent(
@@ -71,10 +58,10 @@ def analyze_crypto(crypto_ticker: str):
         llm=llm,
         max_iter=5,
         memory=True,
-        tools=[human_tool],
+        #tools=[human_tool],
     )
 
-    get_equity_task = Task(
+    get_crypto_task = Task(
         description=f"Analyze {crypto_ticker} cryptocurrency",
         expected_output="""crypto tickers that the human wants you to research - These are the crypto tickers you know = for example -
         {
@@ -109,8 +96,8 @@ def analyze_crypto(crypto_ticker: str):
     # ###########################################################################
 
     def get_daily_closing_prices(ticker:str) -> pd.DataFrame:
-        msft = yf.Ticker(ticker)
-        df = msft.history(period="1mo")
+        symbol = yf.Ticker(ticker)
+        df = symbol.history(period="3mo")
         df1 = df[["Close"]]
         df1.rename(columns={"Close":"price"}, inplace = True)
         df1.index = pd.to_datetime(df.index)
@@ -122,11 +109,11 @@ def analyze_crypto(crypto_ticker: str):
     def crypto_price_tool(ticker_symbol: str) -> str:
         """Get daily closing price for a given ticker symbol"""
         price_df = get_daily_closing_prices(ticker_symbol)
-        text_output = []
+        text_output = ["date - price (USD)"]
         for date, row in price_df.iterrows():
             text_output.append(f"{date.strftime('%Y-%m-%d')} - {row['price']:.2f}")
         return "\n".join(text_output)
-    #print(crypto_price_tool("BTC-USD"))
+#     #print(crypto_price_tool("BTC-USD"))
 
     price_analyst_agent = Agent(
         role="Crypto Price Analyst",
@@ -141,58 +128,58 @@ def analyze_crypto(crypto_ticker: str):
 
     get_price_analysis_task = Task(
         description=f"""
-        Use the crypto price tool to get historical prices for {crypto_ticker}
+        Use the crypto_price_tool to get historical prices for {crypto_ticker}
 
-        The current date is {datetime.now()}.
+        The current date is {datetime.today()}.
 
         Compose the results into a helpful report""",
 
         expected_output="""Create 1 paragraph summary for the crypto, along with a prediction for the future trend""",
         agent=price_analyst_agent,
-        context=[get_equity_task],
+        context=[get_crypto_task],
     )
-    # ###################################################################################
+#     # # # ###################################################################################
 
-    writer_agent = Agent(
-        role="Report Writer",
-        goal=f"""Write 1 paragraph report of {crypto_ticker} market.""",
-        backstory="""
-        You're highly respected as an exceptional market analyst with extensive experience tracking crypto assets consistently for more than a decade. 
-        Your insights and projections are notably precise, establishing a strong reputation in the crypto sphere.
-        Alongside your deep knowledge of traditional crypto, you have a nuanced understanding of human behavior and major economic forces.
-        You seamlessly integrate different frameworks, like cyclical theories, and take a multifaceted approach to each analysis, 
-        adeptly balancing various perspectives.
-        While you monitor news and price history, you view them with a critical lens, carefully evaluating source reliability. 
-        Your standout skill is your ability to translate complex market insights into straightforward summaries, 
-        making intricate concepts approachable for all audiences.
-        Your approach to writing includes:
-        Bullet-pointed executive summaries that emphasize the key takeaways
-        Streamlined explanations that distill complex insights into core ideas
-        You excel at turning highly technical content into compelling, accessible narratives, making even the most 
-        challenging topics clear and engaging for readers""",
-        verbose=True,
-        allow_delegation=False,
-        llm=llm,
-        max_iter=5,
-        memory=True,
-       )
+    # writer_agent = Agent(
+    #     role="Report Writer",
+    #     goal=f"""Write 1 paragraph report of {crypto_ticker} market.""",
+    #     backstory="""
+    #     You're highly respected as an exceptional market analyst with extensive experience tracking crypto assets consistently for more than a decade. 
+    #     Your insights and projections are notably precise, establishing a strong reputation in the crypto sphere.
+    #     Alongside your deep knowledge of traditional crypto, you have a nuanced understanding of human behavior and major economic forces.
+    #     You seamlessly integrate different frameworks, like cyclical theories, and take a multifaceted approach to each analysis, 
+    #     adeptly balancing various perspectives.
+    #     While you monitor news and price history, you view them with a critical lens, carefully evaluating source reliability. 
+    #     Your standout skill is your ability to translate complex market insights into straightforward summaries, 
+    #     making intricate concepts approachable for all audiences.
+    #     Your approach to writing includes:
+    #     Bullet-pointed executive summaries that emphasize the key takeaways
+    #     Streamlined explanations that distill complex insights into core ideas
+    #     You excel at turning highly technical content into compelling, accessible narratives, making even the most 
+    #     challenging topics clear and engaging for readers""",
+    #     verbose=True,
+    #     allow_delegation=False,
+    #     llm=llm,
+    #     max_iter=5,
+    #     memory=True,
+    #    )
 
-    write_report_task = Task(
-        description=f"""Use the reports from the news analyst and the price analyst to create a report that summarizes {crypto_ticker}""",
+    # write_report_task = Task(
+    #     description=f"""Use the reports from the news analyst and the price analyst to create a report that summarizes {crypto_ticker}""",
 
-        expected_output=f"""Perform a detailed technical analysis of {crypto_ticker} using the daily closing price data for 3 months,
-        . Focus on identifying key price patterns, support and resistance levels, and trend directions.
-        Utilize indicators such as moving averages (SMA, EMA), Bollinger Bands, and RSI to gauge momentum and volatility.
-        Examine volume trends to confirm price movements and assess the impact of dividends and stock splits on the price action.
-        Additionally, incorporate candlestick patterns to predict potential reversals or continuations and provide insights into the stock's future price movements
-        and make prediction - up, down or neutral. Do not make up false information & give rationale of every point that is analyzed.""",
-        agent=writer_agent,
-        context=[get_price_analysis_task],
-    )
+    #     expected_output=f"""Perform a detailed technical analysis of {crypto_ticker} using the daily closing price data for 3 months,
+    #     . Focus on identifying key price patterns, support and resistance levels, and trend directions.
+    #     Utilize indicators such as moving averages (SMA, EMA), Bollinger Bands, and RSI to gauge momentum and volatility.
+    #     Examine volume trends to confirm price movements and assess the impact of dividends and stock splits on the price action.
+    #     Additionally, incorporate candlestick patterns to predict potential reversals or continuations and provide insights into the stock's future price movements
+    #     and make prediction - up, down or neutral. Do not make up false information & give rationale of every point that is analyzed.""",
+    #     agent=writer_agent,
+    #     context=[get_price_analysis_task],
+    # )
 
     crew = Crew(
-        agents=[customer_communicator_agent, price_analyst_agent, writer_agent],
-        tasks=[get_equity_task, get_price_analysis_task, write_report_task],
+        agents=[customer_communicator_agent,price_analyst_agent],#,writer_agent],
+        tasks=[get_crypto_task,get_price_analysis_task],#, write_report_task],
         verbose=True,
         process=Process.sequential,
         full_output=True,
