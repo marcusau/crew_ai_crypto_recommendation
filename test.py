@@ -39,7 +39,14 @@ llm = LLM(
     stop=["END"],
     seed=42
 )
-llm=LLM(model="ollama/llama3.2:3b", base_url="http://localhost:11434")
+
+llm = LLM(
+    provider="openai",
+    model="gpt-4",  # Use "gpt-4" for GPT-4
+    api_key=os.environ["OPENAI_API_KEY"]
+)
+
+#llm=LLM(model="ollama/llama3.2:3b", base_url="http://localhost:11434")
 
 # ticker = "BTC-USD"
 # def get_daily_closing_prices(ticker:str) -> pd.DataFrame:
