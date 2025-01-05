@@ -46,6 +46,12 @@ llm = LLM(
     api_key=os.environ["OPENAI_API_KEY"]
 )
 
+response = llm.generate_text(
+    prompt="Tell me a joke about AI.",
+    max_tokens=50
+)
+
+print(response)
 #llm=LLM(model="ollama/llama3.2:3b", base_url="http://localhost:11434")
 
 # ticker = "BTC-USD"
