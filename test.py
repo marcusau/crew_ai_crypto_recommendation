@@ -24,8 +24,21 @@ import yfinance as yf
 
 load_dotenv()
 
+os.environ["OPENAI_API_KEY"] = "your-api-key"
+os.environ["OPENAI_API_BASE"] = "https://api.your-provider.com/v1"
+os.environ["OPENAI_MODEL_NAME"] = "your-model-name"
 #os.environ["OPENAI_API_KEY"] = "NA"
 
+llm = LLM(
+    model="gpt-4o",
+    temperature=0.8,
+    max_tokens=150,
+    top_p=0.9,
+    frequency_penalty=0.1,
+    presence_penalty=0.1,
+    stop=["END"],
+    seed=42
+)
 llm=LLM(model="ollama/llama3.2:3b", base_url="http://localhost:11434")
 
 # ticker = "BTC-USD"
