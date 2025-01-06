@@ -24,35 +24,21 @@ import yfinance as yf
 
 load_dotenv()
 
-os.environ["OPENAI_API_KEY"] = "your-api-key"
-os.environ["OPENAI_API_BASE"] = "https://api.your-provider.com/v1"
-os.environ["OPENAI_MODEL_NAME"] = "your-model-name"
-#os.environ["OPENAI_API_KEY"] = "NA"
+os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 
 llm = LLM(
-    model="gpt-4o",
+    api_key=os.environ["OPENAI_API_KEY"],
+    model="gpt-4o-mini",
     temperature=0.8,
-    max_tokens=150,
+    max_tokens=2000,
     top_p=0.9,
     frequency_penalty=0.1,
     presence_penalty=0.1,
-    stop=["END"],
     seed=42
 )
 
-llm = LLM(
-    provider="openai",
-    model="gpt-4",  # Use "gpt-4" for GPT-4
-    api_key=os.environ["OPENAI_API_KEY"]
-)
 
-response = llm.generate_text(
-    prompt="Tell me a joke about AI.",
-    max_tokens=50
-)
 
-print(response)
-#llm=LLM(model="ollama/llama3.2:3b", base_url="http://localhost:11434")
 
 # ticker = "BTC-USD"
 # def get_daily_closing_prices(ticker:str) -> pd.DataFrame:
@@ -119,7 +105,7 @@ def analyze_crypto(crypto_ticker: str):
     }.""",
         agent=customer_communicator_agent,
     )
-    # ###########################################################################
+#     # ###########################################################################
 
     def get_daily_closing_prices(ticker:str) -> pd.DataFrame:
         symbol = yf.Ticker(ticker)
@@ -164,48 +150,48 @@ def analyze_crypto(crypto_ticker: str):
         agent=price_analyst_agent,
         context=[get_crypto_task],
     )
-#     # # # ###################################################################################
+# #     # # # ###################################################################################
 
-    # writer_agent = Agent(
-    #     role="Report Writer",
-    #     goal=f"""Write 1 paragraph report of {crypto_ticker} market.""",
-    #     backstory="""
-    #     You're highly respected as an exceptional market analyst with extensive experience tracking crypto assets consistently for more than a decade. 
-    #     Your insights and projections are notably precise, establishing a strong reputation in the crypto sphere.
-    #     Alongside your deep knowledge of traditional crypto, you have a nuanced understanding of human behavior and major economic forces.
-    #     You seamlessly integrate different frameworks, like cyclical theories, and take a multifaceted approach to each analysis, 
-    #     adeptly balancing various perspectives.
-    #     While you monitor news and price history, you view them with a critical lens, carefully evaluating source reliability. 
-    #     Your standout skill is your ability to translate complex market insights into straightforward summaries, 
-    #     making intricate concepts approachable for all audiences.
-    #     Your approach to writing includes:
-    #     Bullet-pointed executive summaries that emphasize the key takeaways
-    #     Streamlined explanations that distill complex insights into core ideas
-    #     You excel at turning highly technical content into compelling, accessible narratives, making even the most 
-    #     challenging topics clear and engaging for readers""",
-    #     verbose=True,
-    #     allow_delegation=False,
-    #     llm=llm,
-    #     max_iter=5,
-    #     memory=True,
-    #    )
+    writer_agent = Agent(
+        role="Report Writer",
+        goal=f"""Write 1 paragraph report of {crypto_ticker} market.""",
+        backstory="""
+        You're highly respected as an exceptional market analyst with extensive experience tracking crypto assets consistently for more than a decade. 
+        Your insights and projections are notably precise, establishing a strong reputation in the crypto sphere.
+        Alongside your deep knowledge of traditional crypto, you have a nuanced understanding of human behavior and major economic forces.
+        You seamlessly integrate different frameworks, like cyclical theories, and take a multifaceted approach to each analysis, 
+        adeptly balancing various perspectives.
+        While you monitor news and price history, you view them with a critical lens, carefully evaluating source reliability. 
+        Your standout skill is your ability to translate complex market insights into straightforward summaries, 
+        making intricate concepts approachable for all audiences.
+        Your approach to writing includes:
+        Bullet-pointed executive summaries that emphasize the key takeaways
+        Streamlined explanations that distill complex insights into core ideas
+        You excel at turning highly technical content into compelling, accessible narratives, making even the most 
+        challenging topics clear and engaging for readers""",
+        verbose=True,
+        allow_delegation=False,
+        llm=llm,
+        max_iter=5,
+        memory=True,
+       )
 
-    # write_report_task = Task(
-    #     description=f"""Use the reports from the news analyst and the price analyst to create a report that summarizes {crypto_ticker}""",
+    write_report_task = Task(
+        description=f"""Use the reports from the news analyst and the price analyst to create a report that summarizes {crypto_ticker}""",
 
-    #     expected_output=f"""Perform a detailed technical analysis of {crypto_ticker} using the daily closing price data for 3 months,
-    #     . Focus on identifying key price patterns, support and resistance levels, and trend directions.
-    #     Utilize indicators such as moving averages (SMA, EMA), Bollinger Bands, and RSI to gauge momentum and volatility.
-    #     Examine volume trends to confirm price movements and assess the impact of dividends and stock splits on the price action.
-    #     Additionally, incorporate candlestick patterns to predict potential reversals or continuations and provide insights into the stock's future price movements
-    #     and make prediction - up, down or neutral. Do not make up false information & give rationale of every point that is analyzed.""",
-    #     agent=writer_agent,
-    #     context=[get_price_analysis_task],
-    # )
+        expected_output=f"""Perform a detailed technical analysis of {crypto_ticker} using the daily closing price data for 3 months,
+        . Focus on identifying key price patterns, support and resistance levels, and trend directions.
+        Utilize indicators such as moving averages (SMA, EMA), Bollinger Bands, and RSI to gauge momentum and volatility.
+        Examine volume trends to confirm price movements and assess the impact of dividends and stock splits on the price action.
+        Additionally, incorporate candlestick patterns to predict potential reversals or continuations and provide insights into the stock's future price movements
+        and make prediction - up, down or neutral. Do not make up false information & give rationale of every point that is analyzed.""",
+        agent=writer_agent,
+        context=[get_price_analysis_task],
+    )
 
     crew = Crew(
-        agents=[customer_communicator_agent,price_analyst_agent],#,writer_agent],
-        tasks=[get_crypto_task,get_price_analysis_task],#, write_report_task],
+        agents=[customer_communicator_agent,price_analyst_agent,writer_agent],
+        tasks=[get_crypto_task, get_price_analysis_task, write_report_task],
         verbose=True,
         process=Process.sequential,
         full_output=True,
